@@ -236,7 +236,7 @@
       <a href="https://www.powershellgallery.com/packages/Microsoft.WinGet.Client">Microsoft.WinGet.Client</a>
     </li>
   </ul>
-  To install BurntToast and `Microsoft.WinGet.Client`, run the following command in PowerShell:
+  To install BurntToast and <code>Microsoft.WinGet.Client<code>, run the following command in PowerShell:
   <pre><code>Install-Module -Name BurntToast, Microsoft.WinGet.Client</code></pre>
 </p>
 
