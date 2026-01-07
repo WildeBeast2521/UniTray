@@ -468,6 +468,7 @@ function Update-NotifyIcon {
 				$Script:count += $Script:State["ScoopAvailableUpdates"].Count
 				$Script:update += $Script:State["ScoopAvailableUpdates"]
 			}
+
 			if ($Script:State["ScoopFailedInstalls"].Count -gt 0) {
 				$failedList = $Script:ScoopState["FailedInstalls"] -join ', '
 				New-BurntToastNotification -Text "Install failed, cleaned up", "$failedList" -AppLogo $failedIconPath
@@ -515,20 +516,24 @@ $contextMenu.MenuItems.Add((New-MenuItem -text 'Update all' -action {
 		if ($Script:State["ChocoAvailableUpdates"]) {
 			$resultChoco = Show-Form -title "Chocolatey" -text $message -packages $Script:State["ChocoAvailableUpdates"]
 		}
-		elseif ($Script:State["WingetAvailableUpdates"]) {
+		
+		if ($Script:State["WingetAvailableUpdates"]) {
 			$resultWinget = Show-Form -title "Winget" -text $message -packages $Script:State["WingetAvailableUpdates"]
 		}
-		elseif ($Script:State["ScoopAvailableUpdates"]) {
+		
+		if ($Script:State["ScoopAvailableUpdates"]) {
 			$resultScoop = Show-Form -title "Scoop" -text $message -packages $Script:State["ScoopAvailableUpdates"]
 		}
 
 		if ($resultChoco) {
 			Update-Package -manager "choco" -package $resultChoco
 		}
-		elseif ($resultWinget) {
+		
+		if ($resultWinget) {
 			Update-Package -manager "winget" -package $resultWinget
 		}
-		elseif ($resultScoop) {
+		
+		if ($resultScoop) {
 			Update-Package -manager "scoop" -package $resultScoop
 		}
 
