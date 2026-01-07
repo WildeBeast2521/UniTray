@@ -365,6 +365,64 @@ function Remove-FailedInstall {
 	}
 }
 
+# Initialize the HashSet with the list
+function Initialize-HashSet {
+	param (
+		[string[]]$list
+	)
+	return [System.Collections.Generic.HashSet[string]]::new($list)
+}
+
+# Get process matching udpate list
+function Get-RunningProcess {
+	param (
+		[string[]]$selectedPackages
+	)
+
+	# Initialize the HashSet
+	$updateHashSet = Initialize-HashSet -list $selectedPackages
+
+	# Get the list of running processes with command line arguments
+	$processes = Get-CimInstance -ClassName Win32_Process | ForEach-Object {
+		$path = $_.ExecutablePath
+		if ($path -and $path -like (Join-Path $env:USERPROFILE "\scoop\apps\*")) {
+			$package = ($path -split [regex]::Escape("\scoop\apps\"))[1] -split '\\' | Select-Object -First 1
+			[PSCustomObject]@{
+				Id			= $_.ProcessId
+				ProcessName	= $_.Name
+				Path		= $path
+				Package		= $package.ToLower()
+				CommandLine	= $_.CommandLine
+			}
+		}
+	}
+
+	# Find matches between running processes and update list
+	$matchingProcesses = @($processes | Where-Object {
+		$updateHashSet.Contains($_.Package) -and $selectedPackages.Contains($_.Package)
+	})
+
+	if ($matchingProcesses.Count -gt 0) {
+		$message = "Do you want to terminate the following processes that are running and match the update list:"
+		$title = "Termination"
+
+		$result = Show-Form -title $title -text $message -packages $matchingProcesses.ProcessName
+
+		if ($result) {
+			# Store the command lines of the matching processes
+			$commandLine = $matchingProcesses | ForEach-Object { $_.CommandLine }
+
+			# Terminate the matching processes
+			$matchingProcesses | ForEach-Object {
+				Stop-Process -Id $_.Id -Force
+			}
+			return $commandLine
+		} else {
+			return $false
+		}
+	}
+}
+
 # Update packages
 function Update-Package {
 	param (
@@ -382,6 +440,27 @@ function Update-Package {
 			Start-Process "cmd.exe" -ArgumentList "/c scoop update $_" -WindowStyle Minimized -Wait
 		}
 		scoop cleanup * -k
+	}
+}
+
+# Restart terminated processes
+function Restart-TerminatedProcess {
+	param (
+		[string[]]$process
+	)
+
+	foreach ($commandLine in $process) {
+		# Split the command line into the executable path and arguments
+		$commandLine -match '^"([^"]+)"\s*(.*)'
+		$path = $matches[1]
+		$arguments = $matches[2]
+
+		# Determine if the process should be restarted
+		if ($arguments) {
+			Start-Process -FilePath $path -ArgumentList $arguments
+		} else {
+			Start-Process -FilePath $path
+		}
 	}
 }
 
@@ -534,7 +613,18 @@ $contextMenu.MenuItems.Add((New-MenuItem -text 'Update all' -action {
 		}
 		
 		if ($resultScoop) {
-			Update-Package -manager "scoop" -package $resultScoop
+			$terminatedProcesses = Get-RunningProcess -selectedPackages $resultScoop
+			if ($terminatedProcesses -eq $false) {
+				return
+			} elseif ($terminatedProcesses -ne $null) {
+				Update-Package -manager "scoop" -package $resultScoop
+				Restart-TerminatedProcess -process $terminatedProcesses
+			} else {
+				# If no processes to terminate, proceed with the update
+				Update-Package -manager "scoop" -package $resultScoop
+			}
+		} else {
+			return
 		}
 
 		if ($resultChoco -or $resultWinget -or $resultScoop) {
