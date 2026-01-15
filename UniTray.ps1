@@ -430,7 +430,7 @@ function Update-Package {
 		[string[]]$package
 	)
 
-	if ($manager -in @("choco", "winget")) {
+	if ($manager -in @("chocolatey", "winget")) {
 		$package | ForEach-Object {
 			Start-Process "cmd.exe" -ArgumentList "/c $manager upgrade $_" -WindowStyle Minimized -Wait
 		}
@@ -489,7 +489,7 @@ function Update-NotifyIcon {
 		Set-NotifyIconTooltip -fullText "Error: Check internet connection"
 		New-BurntToastNotification -Text Error, "Check internet connection" -AppLogo $defaultIconPath
 	} else {
-		if ($settingsJson.choco) {
+		if ($settingsJson.chocolatey) {
 			$outputChoco = choco outdated
 		}
 
@@ -605,7 +605,7 @@ $contextMenu.MenuItems.Add((New-MenuItem -text 'Update all' -action {
 		}
 
 		if ($resultChoco) {
-			Update-Package -manager "choco" -package $resultChoco
+			Update-Package -manager "chocolatey" -package $resultChoco
 		}
 		
 		if ($resultWinget) {
