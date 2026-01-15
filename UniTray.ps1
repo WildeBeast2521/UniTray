@@ -621,8 +621,6 @@ $contextMenu.MenuItems.Add((New-MenuItem -text 'Update all' -action {
 				# If no processes to terminate, proceed with the update
 				Update-Package -manager "scoop" -package $resultScoop
 			}
-		} else {
-			return
 		}
 
 		if ($resultChoco -or $resultWinget -or $resultScoop) {
