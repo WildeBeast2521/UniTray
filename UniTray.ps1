@@ -307,31 +307,29 @@ function Show-Form {
 # Update the state
 function Update-State {
 	param (
-		[string]$outputChoco,
+		[string[]]$outputChoco,
 		[object]$outputWinget,
 		[object]$outputScoopStatus
 	)
 
 	# Chocolatey
 	if ($settingsJson.chocolatey) {
-		$text = $outputChoco -split "`n"
-		$updateLines = $text | Where-Object { $_.Trim() -ne "" }
-		$availableUpdates = $updateLines | Where-Object {
-			$_ -match '^\s*[^|]+\|[^|]+\|[^|]+\|(?:true|false)\s*$'
-		}
-		$structuredUpdates = $availableUpdates | ForEach-Object {
+		$structuredUpdates = $outputChoco | Where-Object { $_ -match '\|' } | ForEach-Object {
 			$parts = $_ -split '\|'
 			[PSCustomObject]@{
 				Id = $parts[0].Trim()
 				Pinned = $parts[3].Trim()
 			}
 		}
+
 		$availableUpdates = @($structuredUpdates | Where-Object {
 			$_.Pinned -ne 'true'
 		})
+
 		$pinnedUpdates = $structuredUpdates | Where-Object {
 			$_.Pinned -eq 'true'
 		}
+
 		$Script:State["ChocoPinnedUpdates"] = $pinnedUpdates.Id
 
 		if ($availableUpdates.Count -gt 0) {
@@ -490,7 +488,7 @@ function Update-NotifyIcon {
 		New-BurntToastNotification -Text Error, "Check internet connection" -AppLogo $defaultIconPath
 	} else {
 		if ($settingsJson.chocolatey) {
-			$outputChoco = choco outdated
+			$outputChoco = choco outdated -r
 		}
 
 		if ($settingsJson.winget) {
