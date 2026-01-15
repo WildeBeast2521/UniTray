@@ -428,7 +428,7 @@ function Update-Package {
 		[string[]]$package
 	)
 
-	if ($manager -in @("chocolatey", "winget")) {
+	if ($manager -in @("choco", "winget")) {
 		$package | ForEach-Object {
 			Start-Process "cmd.exe" -ArgumentList "/c $manager upgrade $_" -WindowStyle Minimized -Wait
 		}
@@ -603,7 +603,7 @@ $contextMenu.MenuItems.Add((New-MenuItem -text 'Update all' -action {
 		}
 
 		if ($resultChoco) {
-			Update-Package -manager "chocolatey" -package $resultChoco
+			Update-Package -manager "choco" -package $resultChoco
 		}
 		
 		if ($resultWinget) {
